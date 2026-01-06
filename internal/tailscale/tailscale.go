@@ -16,8 +16,12 @@
 package tailscale
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -76,4 +80,77 @@ func GetHostnameOrDefault(defaultHost string) string {
 		return defaultHost
 	}
 	return hostname
+}
+
+// findTailscale returns the path to the tailscale binary.
+func findTailscale() (string, error) {
+	for _, path := range tailscalePaths {
+		if _, err := exec.LookPath(path); err == nil {
+			return path, nil
+		}
+		// Also check if the absolute path exists
+		if filepath.IsAbs(path) {
+			if _, err := os.Stat(path); err == nil {
+				return path, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("tailscale binary not found")
+}
+
+// GetCertificate fetches a TLS certificate from Tailscale for the given hostname.
+// The certificate is fetched on-demand and kept only in memory.
+// If hostname is empty, it will be auto-detected from Tailscale.
+func GetCertificate(hostname string) (*tls.Certificate, error) {
+	// Auto-detect hostname if not provided
+	if hostname == "" {
+		var err error
+		hostname, err = GetHostname()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get tailscale hostname: %w", err)
+		}
+	}
+
+	// Find tailscale binary
+	tsPath, err := findTailscale()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create temp directory for cert files
+	tmpDir, err := os.MkdirTemp("", "tailscale-cert-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tmpDir) // Clean up immediately after reading
+
+	certFile := filepath.Join(tmpDir, "cert.crt")
+	keyFile := filepath.Join(tmpDir, "cert.key")
+
+	// Fetch certificate using tailscale cert command
+	cmd := exec.Command(tsPath, "cert",
+		"--cert-file", certFile,
+		"--key-file", keyFile,
+		hostname)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("tailscale cert failed: %w: %s", err, output)
+	}
+
+	// Read cert and key into memory
+	certPEM, err := os.ReadFile(certFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read certificate: %w", err)
+	}
+	keyPEM, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key: %w", err)
+	}
+
+	// Parse the certificate
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	return &cert, nil
 }

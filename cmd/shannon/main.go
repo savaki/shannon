@@ -111,6 +111,12 @@ func serveCommand() *cli.Command {
 				EnvVars:     []string{"SHANNON_LOG_LEVEL"},
 				Destination: &cfg.LogLevel,
 			},
+			&cli.BoolFlag{
+				Name:        "tls",
+				Usage:       "Enable HTTPS using Tailscale certificates",
+				EnvVars:     []string{"SHANNON_TLS"},
+				Destination: &cfg.TLS,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			return runServe(cfg)
@@ -175,6 +181,7 @@ func runServe(cfg *config.Config) error {
 		Host: host,
 		Port: cfg.Port,
 		PSK:  psk,
+		TLS:  cfg.TLS,
 	}
 	if err := auth.PrintQR(qrConfig); err != nil {
 		slog.Warn("failed to print QR code", "error", err)
@@ -183,6 +190,17 @@ func runServe(cfg *config.Config) error {
 	// Initialize API server
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	server := api.NewServer(addr, sessionMgr, pskMgr)
+
+	// Configure TLS if enabled
+	if cfg.TLS {
+		slog.Info("fetching Tailscale TLS certificate", "host", host)
+		cert, err := tailscale.GetCertificate(host)
+		if err != nil {
+			return fmt.Errorf("failed to get TLS certificate: %w", err)
+		}
+		server.SetTLSCertificate(cert)
+		slog.Info("TLS certificate loaded (in-memory only)")
+	}
 
 	// Start server in background
 	serverErr := make(chan error, 1)

@@ -131,12 +131,12 @@ func TestPrintQR(t *testing.T) {
 		t.Error("PrintQR() output seems too short")
 	}
 
-	// Should contain host and port info
-	if !bytes.Contains([]byte(output), []byte("Host:")) {
-		t.Error("PrintQR() output should contain Host")
+	// Should contain URL info with host and port
+	if !bytes.Contains([]byte(output), []byte("URL:")) {
+		t.Error("PrintQR() output should contain URL")
 	}
-	if !bytes.Contains([]byte(output), []byte("Port:")) {
-		t.Error("PrintQR() output should contain Port")
+	if !bytes.Contains([]byte(output), []byte("100.64.0.1:8080")) {
+		t.Error("PrintQR() output should contain host:port")
 	}
 }
 

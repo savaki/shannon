@@ -44,6 +44,9 @@ type Config struct {
 
 	// LogLevel is the logging verbosity (debug, info, warn, error).
 	LogLevel string
+
+	// TLS enables HTTPS using Tailscale certificates.
+	TLS bool
 }
 
 // Validate checks the configuration and returns an error if invalid.

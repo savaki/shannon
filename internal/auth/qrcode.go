@@ -28,6 +28,7 @@ type ConnectionConfig struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
 	PSK  string `json:"psk"`
+	TLS  bool   `json:"tls,omitempty"`
 }
 
 // GenerateQR creates a QR code containing connection information.
@@ -87,8 +88,12 @@ func PrintQR(config ConnectionConfig) error {
 
 	fmt.Println("║" + strings.Repeat(" ", width) + "║")
 	fmt.Println("╠" + strings.Repeat("═", width) + "╣")
-	fmt.Printf("║  Host: %-52s║\n", config.Host)
-	fmt.Printf("║  Port: %-52d║\n", config.Port)
+	scheme := "http"
+	if config.TLS {
+		scheme = "https"
+	}
+	url := fmt.Sprintf("%s://%s:%d", scheme, config.Host, config.Port)
+	fmt.Printf("║  URL: %-53s║\n", url)
 	fmt.Println("╚" + strings.Repeat("═", width) + "╝")
 	fmt.Println()
 

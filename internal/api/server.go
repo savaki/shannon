@@ -17,6 +17,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"time"
@@ -31,6 +32,7 @@ type Server struct {
 	sessions   *session.Manager
 	psk        *auth.PSKManager
 	httpServer *http.Server
+	tlsCert    *tls.Certificate
 }
 
 // NewServer creates a new API server.
@@ -55,9 +57,25 @@ func NewServer(addr string, sessions *session.Manager, psk *auth.PSKManager) *Se
 	return s
 }
 
+// SetTLSCertificate configures TLS with the provided certificate.
+// When set, the server will use HTTPS instead of HTTP.
+func (s *Server) SetTLSCertificate(cert *tls.Certificate) {
+	s.tlsCert = cert
+	if cert != nil {
+		s.httpServer.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{*cert},
+		}
+	}
+}
+
 // Start starts the HTTP server.
 func (s *Server) Start() error {
-	slog.Info("API server listening", "addr", s.addr)
+	if s.tlsCert != nil {
+		slog.Info("API server listening (HTTPS)", "addr", s.addr)
+		// Use empty strings for cert/key files since we configured TLSConfig directly
+		return s.httpServer.ListenAndServeTLS("", "")
+	}
+	slog.Info("API server listening (HTTP)", "addr", s.addr)
 	return s.httpServer.ListenAndServe()
 }
 
