@@ -16,6 +16,7 @@ package tailscale
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -57,4 +58,19 @@ func TestGetHostnameOrDefault(t *testing.T) {
 	// If Tailscale isn't available, it should return the default
 	// If Tailscale IS available, it should return a non-empty hostname
 	t.Logf("GetHostnameOrDefault returned: %q", result)
+}
+
+func TestGetShortHostnameOrDefault(t *testing.T) {
+	result := GetShortHostnameOrDefault("fallback-host")
+
+	if result == "" {
+		t.Error("GetShortHostnameOrDefault returned empty string")
+	}
+
+	// Short hostname should not contain dots (unless it's the fallback)
+	if result != "fallback-host" && strings.Contains(result, ".") {
+		t.Errorf("GetShortHostnameOrDefault returned FQDN instead of short name: %q", result)
+	}
+
+	t.Logf("GetShortHostnameOrDefault returned: %q", result)
 }

@@ -82,6 +82,29 @@ func GetHostnameOrDefault(defaultHost string) string {
 	return hostname
 }
 
+// GetShortHostname returns just the node name (first part of the DNS name).
+// For example, "matts-mac-mini.tailb0833.ts.net" returns "matts-mac-mini".
+func GetShortHostname() (string, error) {
+	hostname, err := GetHostname()
+	if err != nil {
+		return "", err
+	}
+	// Extract just the first part before the first dot
+	if idx := strings.Index(hostname, "."); idx > 0 {
+		return hostname[:idx], nil
+	}
+	return hostname, nil
+}
+
+// GetShortHostnameOrDefault returns the short Tailscale hostname, or the provided default if unavailable.
+func GetShortHostnameOrDefault(defaultHost string) string {
+	hostname, err := GetShortHostname()
+	if err != nil || hostname == "" {
+		return defaultHost
+	}
+	return hostname
+}
+
 // findTailscale returns the path to the tailscale binary.
 func findTailscale() (string, error) {
 	for _, path := range tailscalePaths {

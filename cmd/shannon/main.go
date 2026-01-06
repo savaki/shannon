@@ -173,9 +173,15 @@ func runServe(cfg *config.Config) error {
 
 	// Display QR code for mobile connection
 	// Use configured host, or try Tailscale, or fall back to localhost
+	// For TLS, use full FQDN (required for cert validation)
+	// For HTTP, use short hostname (works with MagicDNS)
 	host := cfg.Host
 	if host == "" {
-		host = tailscale.GetHostnameOrDefault("localhost")
+		if cfg.TLS {
+			host = tailscale.GetHostnameOrDefault("localhost")
+		} else {
+			host = tailscale.GetShortHostnameOrDefault("localhost")
+		}
 	}
 	qrConfig := auth.ConnectionConfig{
 		Host: host,
