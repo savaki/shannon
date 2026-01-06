@@ -33,12 +33,28 @@ type Self struct {
 	TailscaleIPs []string `json:"TailscaleIPs"`
 }
 
+// tailscalePaths lists possible locations for the tailscale binary.
+var tailscalePaths = []string{
+	"tailscale", // In PATH
+	"/Applications/Tailscale.app/Contents/MacOS/Tailscale", // macOS
+	"/usr/bin/tailscale",                                   // Linux
+	"/usr/local/bin/tailscale",                             // Linux alternate
+}
+
 // GetHostname returns the Tailscale DNS name for this machine.
 // It strips the trailing dot from the DNS name if present.
 // Returns an empty string and error if Tailscale is not available.
 func GetHostname() (string, error) {
-	cmd := exec.Command("tailscale", "status", "--json")
-	output, err := cmd.Output()
+	var output []byte
+	var err error
+
+	for _, path := range tailscalePaths {
+		cmd := exec.Command(path, "status", "--json")
+		output, err = cmd.Output()
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return "", err
 	}
