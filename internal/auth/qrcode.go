@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/skip2/go-qrcode"
 )
@@ -96,9 +97,11 @@ func PrintQR(config ConnectionConfig) error {
 
 // centerText centers text within a given width, truncating if necessary.
 func centerText(text string, width int) string {
-	textLen := len(text)
+	textLen := utf8.RuneCountInString(text)
 	if textLen >= width {
-		return text[:width]
+		// Truncate by runes, not bytes
+		runes := []rune(text)
+		return string(runes[:width])
 	}
 	leftPad := (width - textLen) / 2
 	rightPad := width - textLen - leftPad

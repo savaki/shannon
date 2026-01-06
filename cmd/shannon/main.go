@@ -33,6 +33,7 @@ import (
 	"github.com/savaki/shannon/internal/logger"
 	"github.com/savaki/shannon/internal/session"
 	"github.com/savaki/shannon/internal/storage"
+	"github.com/savaki/shannon/internal/tailscale"
 	"github.com/urfave/cli/v2"
 )
 
@@ -158,8 +159,10 @@ func runServe(cfg *config.Config) error {
 	}
 
 	// Display QR code for mobile connection
+	// Try to get Tailscale hostname, fall back to localhost
+	host := tailscale.GetHostnameOrDefault("localhost")
 	qrConfig := auth.ConnectionConfig{
-		Host: "localhost",
+		Host: host,
 		Port: cfg.Port,
 		PSK:  psk,
 	}
