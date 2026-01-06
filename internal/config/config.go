@@ -24,6 +24,9 @@ import (
 
 // Config holds all configuration for the shannon server.
 type Config struct {
+	// Host is the hostname to advertise in QR code (auto-detected from Tailscale if empty).
+	Host string
+
 	// Port is the HTTP server port (1-65535).
 	Port int
 

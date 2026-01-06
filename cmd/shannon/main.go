@@ -61,6 +61,13 @@ func serveCommand() *cli.Command {
 		Name:  "serve",
 		Usage: "Start the shannon server",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "host",
+				Aliases:     []string{"H"},
+				Usage:       "Hostname for QR code (auto-detected from Tailscale if not set)",
+				EnvVars:     []string{"SHANNON_HOST"},
+				Destination: &cfg.Host,
+			},
 			&cli.IntFlag{
 				Name:        "port",
 				Aliases:     []string{"p"},
@@ -159,8 +166,11 @@ func runServe(cfg *config.Config) error {
 	}
 
 	// Display QR code for mobile connection
-	// Try to get Tailscale hostname, fall back to localhost
-	host := tailscale.GetHostnameOrDefault("localhost")
+	// Use configured host, or try Tailscale, or fall back to localhost
+	host := cfg.Host
+	if host == "" {
+		host = tailscale.GetHostnameOrDefault("localhost")
+	}
 	qrConfig := auth.ConnectionConfig{
 		Host: host,
 		Port: cfg.Port,
