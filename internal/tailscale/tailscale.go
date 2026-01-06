@@ -82,6 +82,50 @@ func GetHostnameOrDefault(defaultHost string) string {
 	return hostname
 }
 
+// GetIP returns the first Tailscale IPv4 address for this machine.
+func GetIP() (string, error) {
+	var output []byte
+	var err error
+
+	for _, path := range tailscalePaths {
+		cmd := exec.Command(path, "status", "--json")
+		output, err = cmd.Output()
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return "", err
+	}
+
+	var status Status
+	if err := json.Unmarshal(output, &status); err != nil {
+		return "", err
+	}
+
+	// Return first IPv4 address (typically 100.x.x.x)
+	for _, ip := range status.Self.TailscaleIPs {
+		if !strings.Contains(ip, ":") { // Skip IPv6
+			return ip, nil
+		}
+	}
+
+	if len(status.Self.TailscaleIPs) > 0 {
+		return status.Self.TailscaleIPs[0], nil
+	}
+
+	return "", fmt.Errorf("no tailscale IP found")
+}
+
+// GetIPOrDefault returns the Tailscale IP, or the provided default if unavailable.
+func GetIPOrDefault(defaultIP string) string {
+	ip, err := GetIP()
+	if err != nil || ip == "" {
+		return defaultIP
+	}
+	return ip
+}
+
 // GetShortHostname returns just the node name (first part of the DNS name).
 // For example, "matts-mac-mini.tailb0833.ts.net" returns "matts-mac-mini".
 func GetShortHostname() (string, error) {

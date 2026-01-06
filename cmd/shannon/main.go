@@ -172,10 +172,10 @@ func runServe(cfg *config.Config) error {
 	}
 
 	// Display QR code for mobile connection
-	// Use configured host, or try Tailscale, or fall back to localhost
+	// Use configured host, or try Tailscale IP, or fall back to localhost
 	host := cfg.Host
 	if host == "" {
-		host = tailscale.GetHostnameOrDefault("localhost")
+		host = tailscale.GetIPOrDefault("localhost")
 	}
 	qrConfig := auth.ConnectionConfig{
 		Host: host,
